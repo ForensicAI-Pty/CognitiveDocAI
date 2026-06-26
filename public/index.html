@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CognitiveDoc AI</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons & FontAwesome (for app.js compatibility) -->
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="index.css">
+
+  <style>
+    body { font-family: 'DM Sans', sans-serif; background-color: #0b0a0e; color: #e2e8f0; }
+    .heading-font { font-family: 'Fraunces', serif; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+    .canva-card { background-color: rgba(30, 41, 59, 0.4); backdrop-filter: blur(8px); }
+  </style>
+</head>
+<body class="w-full h-screen flex overflow-hidden">
+
+  <!-- Sidebar -->
+  <aside class="w-64 flex-shrink-0 flex flex-col p-6 border-r border-slate-700/50 bg-[#0f111a]">
+    <div class="flex items-center gap-3 mb-10">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+        <span class="text-white font-bold text-sm">CD</span>
+      </div>
+      <div>
+        <p class="font-bold text-sm tracking-wide text-white">CognitiveDoc AI</p>
+        <p class="text-[10px] uppercase tracking-wider text-slate-400">By Forensic AI Inc.</p>
+      </div>
+    </div>
+    
+    <div class="mb-8 p-4 rounded-xl border border-slate-700/50 bg-slate-800/30">
+      <p class="text-[10px] font-semibold uppercase tracking-widest mb-4 text-slate-400">IBM Tech Validation</p>
+      <div class="space-y-3">
+        <div class="flex items-center gap-3">
+          <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+          <span class="text-xs font-medium text-slate-300">Validated on IBM Cloud</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+          <span class="text-xs font-medium text-slate-300">Built with watsonx.ai</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+          <span class="text-xs font-medium text-slate-300">Powered by Code Engine</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="mt-auto pt-5 border-t border-slate-700/50">
+      <div id="configStatusBanner" class="flex items-center justify-center gap-2 py-2 px-3 rounded-full bg-slate-800 border border-slate-700">
+        <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+        <span id="configStatusText" class="text-[10px] uppercase font-bold tracking-wider text-emerald-400">Gateway Active</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Area -->
+  <div class="flex-1 flex flex-col min-w-0 bg-[#0b0a0e] relative">
+    <!-- Header -->
+    <header class="flex items-center justify-between px-8 py-5 border-b border-slate-700/50 z-10 bg-[#0b0a0e]/80 backdrop-blur-sm">
+      <h1 class="heading-font font-bold text-xl text-white">Enterprise Document Insight Engine</h1>
+      <button id="openSettingsBtn" class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm border border-slate-600 hover:bg-slate-800 hover:border-slate-500 transition-all text-slate-300 font-medium">
+        <i data-lucide="settings" class="w-4 h-4"></i> Connection Settings
+      </button>
+    </header>
+    
+    <div class="flex-1 flex overflow-hidden">
+      <!-- Left Content (Upload & Chat) -->
+      <div class="flex-1 flex flex-col p-8 overflow-hidden">
+        
+        <!-- Documents Section -->
+        <div class="mb-6 flex-shrink-0">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="font-semibold text-white">Document Knowledge Base</h2>
+            <span id="docCountText" class="text-xs text-slate-400 font-medium">0 Documents Loaded</span>
+          </div>
+          
+          <div id="uploadZone" class="canva-card rounded-2xl p-8 text-center mb-5 border border-dashed border-slate-600 hover:border-indigo-500/60 transition-colors cursor-pointer group">
+            <i data-lucide="upload-cloud" class="w-8 h-8 mx-auto mb-3 text-slate-500 group-hover:text-indigo-400 transition-colors"></i>
+            <p class="text-sm font-medium text-slate-300">Drag & drop enterprise documents or click to browse</p>
+            <p class="text-xs mt-1 text-slate-500">Supports PDF, TXT, DOCX (Max 20MB)</p>
+            <input type="file" id="fileInput" class="hidden" accept=".pdf,.txt,.docx" />
+          </div>
+          
+          <div id="documentGrid" class="grid grid-cols-2 gap-4">
+            <!-- Documents will be dynamically injected here by app.js -->
+          </div>
+        </div>
+        
+        <!-- Chat Section -->
+        <div class="flex-1 flex flex-col min-h-0 bg-[#14151f] rounded-2xl border border-slate-800 p-2 relative">
+          <!-- Chat History -->
+          <div id="chatHistory" class="flex-1 overflow-y-auto p-4 space-y-6">
+            <div class="chat-message system flex gap-4">
+              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex-shrink-0 flex items-center justify-center shadow-lg">
+                <i data-lucide="bot" class="w-5 h-5 text-white"></i>
+              </div>
+              <div class="pt-1 text-slate-300 text-sm leading-relaxed max-w-[85%]">
+                <p class="mb-3"><span class="font-semibold text-white">Hello! I am CognitiveDoc AI</span>, powered by IBM watsonx.ai and Watson Discovery.</p>
+                <p class="mb-3">I can analyze your unstructured PDF contracts, manuals, and guidelines, synthesizing natural-language answers backed strictly by your documents. Try asking:</p>
+                <ul class="list-disc pl-5 space-y-1.5 text-slate-400">
+                  <li class="italic hover:text-indigo-300 cursor-pointer transition-colors">"What are the late payment terms under Section 4.1?"</li>
+                  <li class="italic hover:text-indigo-300 cursor-pointer transition-colors">"What is the total liability cap for direct damages?"</li>
+                  <li class="italic hover:text-indigo-300 cursor-pointer transition-colors">"Summarize the compliance requirements."</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Chat Input -->
+          <div class="mt-2 p-2 border-t border-slate-800/50 relative">
+            <input type="text" id="queryInput" class="w-full bg-[#1e202e] border border-slate-700/80 rounded-full py-3.5 pl-5 pr-14 text-sm text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-slate-500" placeholder="Query knowledge base using natural language..." />
+            <button id="sendQueryBtn" class="absolute right-3.5 top-1/2 transform -translate-y-1/2 w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center hover:opacity-90 transition-opacity shadow-md">
+              <i data-lucide="send" class="w-4 h-4 text-white ml-0.5"></i>
+            </button>
+          </div>
+        </div>
+        
+      </div>
+      
+      <!-- Right Panel (Citations/Summaries) -->
+      <aside class="w-80 flex-shrink-0 border-l border-slate-800 bg-[#0f111a] p-6 flex flex-col">
+        
+        <div id="detailPlaceholder" class="flex-1 flex flex-col items-center justify-center text-center">
+          <div class="w-14 h-14 rounded-2xl bg-slate-800/50 border border-slate-700 flex items-center justify-center mb-5 shadow-inner">
+            <i data-lucide="fingerprint" class="w-6 h-6 text-slate-500"></i>
+          </div>
+          <p class="text-sm font-medium text-slate-400 leading-relaxed px-4">Submit a query or request a document summary to trigger citation analysis</p>
+        </div>
+        
+        <!-- Citation Viewer -->
+        <div id="citationViewer" class="flex-1 flex-col hidden h-full">
+          <div class="flex items-center gap-2 mb-6 pb-4 border-b border-slate-800">
+            <i data-lucide="quote" class="w-5 h-5 text-indigo-400"></i>
+            <h3 class="font-bold text-white tracking-wide">Source Attribution</h3>
+          </div>
+          <div id="citationList" class="flex-1 overflow-y-auto space-y-4 pr-2">
+            <!-- Citations dynamically injected here -->
+          </div>
+        </div>
+        
+        <!-- Summary Viewer -->
+        <div id="summaryViewer" class="flex-1 flex-col hidden h-full">
+          <div class="flex items-center gap-2 mb-6 pb-4 border-b border-slate-800">
+            <i data-lucide="file-text" class="w-5 h-5 text-purple-400"></i>
+            <h3 class="font-bold text-white tracking-wide">Document Summary</h3>
+          </div>
+          <div class="flex-1 overflow-y-auto pr-2">
+            <h4 id="summaryDocTitle" class="font-semibold text-indigo-300 text-sm mb-3"></h4>
+            <div id="summaryDocContent" class="text-sm text-slate-300 leading-relaxed bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+            </div>
+          </div>
+        </div>
+        
+      </aside>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 items-center justify-center hidden">
+    <div class="bg-[#14151f] border border-slate-700 rounded-2xl shadow-2xl w-[480px] overflow-hidden transform transition-all">
+      <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-[#0f111a]">
+        <h2 class="text-lg font-bold text-white flex items-center gap-2"><i data-lucide="sliders" class="w-5 h-5 text-indigo-400"></i> IBM Cloud Connections</h2>
+        <button id="closeSettingsBtn" class="text-slate-500 hover:text-white transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="p-6 space-y-5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">watsonx.ai API Key</label>
+          <input type="password" id="settingWatsonxApiKey" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:border-indigo-500 focus:outline-none transition-colors" placeholder="Enter IAM API key">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">watsonx Project ID</label>
+          <input type="text" id="settingWatsonxProject" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:border-indigo-500 focus:outline-none transition-colors" placeholder="e.g. 84210a-xxxx-xxxx">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Watson Discovery Project ID</label>
+          <input type="text" id="settingDiscoveryProject" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:border-indigo-500 focus:outline-none transition-colors" placeholder="Optional for RAG pipeline">
+        </div>
+      </div>
+      <div class="p-5 border-t border-slate-800 flex justify-end gap-3 bg-[#0f111a]">
+        <button id="cancelSettingsBtn" class="px-5 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors">Cancel</button>
+        <button id="saveSettingsBtn" class="px-5 py-2 rounded-lg text-sm font-medium text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-md transition-all">Save Context</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

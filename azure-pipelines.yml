@@ -1,0 +1,119 @@
+# Azure DevOps Pipeline to Automate IBM Cloud Code Engine Redeployment
+trigger:
+  - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - group: prod
+  - name: IBM_RESOURCE_GROUP
+    value: 'CognitiveDoc-AI'
+  - name: IBM_PROJECT_NAME
+    value: 'CognitiveDoc AI'
+  - name: IBM_APP_NAME
+    value: 'cognitivedoc-ai'
+  - name: IBM_REGION
+    value: 'eu-gb'
+
+jobs:
+- deployment: DeployToProd
+  displayName: 'Deploy to Prod Environment'
+  pool:
+    vmImage: 'ubuntu-latest'
+  environment: 'prod'
+  strategy:
+    runOnce:
+      deploy:
+        steps:
+        - checkout: self
+        
+        - task: NodeTool@0
+          inputs:
+            versionSpec: '20.x'
+          displayName: 'Install Node.js'
+        
+        - script: |
+            npm ci
+          displayName: 'Install Dependencies'
+        
+        - script: |
+            echo "Starting server in the background..."
+            npm start &
+            SERVER_PID=$!
+            
+            # Wait for server to boot (up to 10 seconds)
+            echo "Waiting for server to respond..."
+            for i in {1..10}; do
+              if curl -s http://localhost:3000/api/config > /dev/null; then
+                echo "Server is up and running!"
+                curl -s http://localhost:3000/api/config
+                kill $SERVER_PID
+                exit 0
+              fi
+              sleep 1
+            done
+            
+            echo "Error: Server failed to start or respond within 10 seconds."
+            kill $SERVER_PID
+            exit 1
+          displayName: 'Verify App Boots & Responds to HTTP Requests'
+        
+        - script: |
+            echo "Installing IBM Cloud CLI..."
+            curl -fsSL https://clis.cloud.ibm.com/install/linux | sh
+            
+            echo "Installing Code Engine plugin..."
+            ibmcloud plugin install code-engine -f
+            
+            echo "Installing Container Registry plugin..."
+            ibmcloud plugin install container-registry -f
+            
+            echo "Logging into IBM Cloud..."
+            ibmcloud login --apikey $(IBM_CLOUD_API_KEY) -r $(IBM_REGION)
+            
+            echo "Cleaning up old images to free up Container Registry space..."
+            ibmcloud cr region-set $(IBM_REGION)
+            ibmcloud cr image-prune-untagged --force || echo "No untagged images to prune or prune failed. Continuing..."
+            
+            echo "Targeting resource group..."
+            # Sanitize variable to strip any accidental trailing spaces or carriage returns (\r)
+            CLEAN_RG=$(echo "$(IBM_RESOURCE_GROUP)" | xargs | tr -d '\r')
+            CLEAN_PROJECT=$(echo "$(IBM_PROJECT_NAME)" | xargs | tr -d '\r')
+            CLEAN_APP=$(echo "$(IBM_APP_NAME)" | xargs | tr -d '\r')
+            
+            # Attempt targeting by ID dynamically extracted from ibmcloud resource groups
+            echo "Attempting to retrieve resource group ID for $CLEAN_RG..."
+            RG_ID=$(ibmcloud resource groups | grep -F "$CLEAN_RG" | awk '{print $2}' | xargs | tr -d '\r')
+            
+            if [ -n "$RG_ID" ]; then
+              echo "Found ID for resource group: $RG_ID. Targeting by ID..."
+              TARGET_SUCCESS=0
+              ibmcloud target -g "$RG_ID" && TARGET_SUCCESS=1
+            fi
+            
+            if [ "$TARGET_SUCCESS" != "1" ]; then
+              echo "Targeting by ID failed or ID not found. Retrying target by name: $CLEAN_RG..."
+              if ! ibmcloud target -g "$CLEAN_RG"; then
+                echo "Targeting failed. Listing available resource groups in this account:"
+                ibmcloud resource groups
+                exit 1
+              fi
+            fi
+            
+            echo "Selecting Code Engine project..."
+            ibmcloud ce project select --name "$CLEAN_PROJECT"
+            
+            echo "Triggering Code Engine update & build..."
+            # This command pushes the checked-out source code from Azure Repos to Code Engine,
+            # triggers a new build, and deploys the new version automatically with Watson env variables.
+            ibmcloud ce app update --name "$CLEAN_APP" --build-source . \
+              --env WATSON_DISCOVERY_APIKEY="$(WATSON_DISCOVERY_APIKEY)" \
+              --env WATSON_DISCOVERY_PROJECT_ID="$(WATSON_DISCOVERY_PROJECT_ID)" \
+              --env WATSON_DISCOVERY_URL="$(WATSON_DISCOVERY_URL)" \
+              --env WATSONX_AI_APIKEY="$(WATSONX_AI_APIKEY)" \
+              --env WATSONX_AI_SERVICE_URL="$(WATSONX_AI_SERVICE_URL)" \
+              --env WATSONX_AI_PROJECT_ID="$(WATSONX_AI_PROJECT_ID)"
+          displayName: 'Trigger Automated Rebuild & Deployment on IBM Cloud'
+          env:
+            IBM_CLOUD_API_KEY: $(IBM_CLOUD_API_KEY)
